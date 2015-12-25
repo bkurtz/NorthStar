@@ -18,7 +18,7 @@
 */
 
 #include "native_usb.h"
-#include <QByteArray>
+#include "QByteArray.h"
 #include <unistd.h>
 
 #if defined(Q_OS_MAC)
@@ -30,11 +30,6 @@ extern "C"
     void rawhid_close(int num);
 }
 #endif
-
-native_usb::native_usb(QObject *parent) :
-    QObject(parent)
-{
-}
 
 int native_usb::open_usb(int vid, int pid)
 {
@@ -156,7 +151,7 @@ int native_usb::write_usb(QByteArray packet)
 QByteArray native_usb::read_usb()
 {
     QByteArray packet;
-    unsigned char char_packet[64];
+    uint8_t char_packet[64];
     int actual_length;
 
 #if defined(Q_OS_MAC)
@@ -175,7 +170,7 @@ QByteArray native_usb::read_usb()
 #if defined(Q_OS_LINUX) || defined(Q_OS_WIN)
     libusb_interrupt_transfer(usb, (1 | LIBUSB_ENDPOINT_IN), char_packet, sizeof(char_packet), &actual_length, 0);
 #endif
-    packet.append((char *)char_packet, actual_length);
+    packet.append(char_packet, actual_length);
 
     return packet;
 }
