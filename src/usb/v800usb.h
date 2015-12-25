@@ -20,9 +20,10 @@
 #ifndef V800USB_H
 #define V800USB_H
 
-#include <QObject>
-
 #define V800_ROOT_DIR   "/U/0"
+
+#include "QByteArray.h"
+#include <string>
 
 enum {
     V800 = 0,
@@ -31,50 +32,38 @@ enum {
 
 class native_usb;
 
-class V800usb : public QObject
+class V800usb
 {
-    Q_OBJECT
 public:
-    explicit V800usb(int device, QObject *parent = 0);
+    V800usb(int device);
     ~V800usb();
 
-signals:
-    void all_sessions(QList<QString> sessions);
-    void session_done(QString session, int session_iter, int session_cnt);
-    void sessions_done();
-    void ready();
-    void not_ready();
+public:
+    int start();
+    // void get_sessions(QList<QString> sessions);
 
-    void all_objects(QList<QString> objects);
-    void file_done();
-
-public slots:
-    void start();
-    void get_sessions(QList<QString> sessions);
-
-    void get_all_objects(QString path);
-    void get_file(QString path);
-
-    void upload_route(QString route);
+    // void get_all_objects(QString path);
+    void get_file(std::string path);
+    // void upload_route(QString route);
 
 private:
-    QList<QString> extract_dir_and_files(QByteArray full);
-    QByteArray generate_request(QString request);
+    // QList<QString> extract_dir_and_files(QByteArray full);
+    QByteArray generate_request(std::string request);
     QByteArray generate_ack(unsigned char packet_num);
     int is_end(QByteArray packet);
     QByteArray add_to_full(QByteArray packet, QByteArray full, bool initial_packet, bool final_packet);
 
-    QList<QString> get_v800_data(QString request, int multi_sport = 0, bool debug=false);
+    int get_v800_data(std::string request, bool debug=false);
 
-    void remove_v800_dir(QString dest);
-    void put_v800_dir(QString dest);
-    void put_v800_data(QString src, QString dest);
-    QByteArray generate_directory_command(QByteArray dest, bool remove);
-    QByteArray generate_initial_command(QByteArray dest, QByteArray data);
-    QByteArray generate_next_command(QByteArray data, int packet_num);
-    int is_command_end(QByteArray packet);
+    // void remove_v800_dir(QString dest);
+    // void put_v800_dir(QString dest);
+    // void put_v800_data(QString src, QString dest);
+    // QByteArray generate_directory_command(QByteArray dest, bool remove);
+    // QByteArray generate_initial_command(QByteArray dest, QByteArray data);
+    // QByteArray generate_next_command(QByteArray data, int packet_num);
+    // int is_command_end(QByteArray packet);
 
-    void get_all_sessions();
+    // void get_all_sessions();
 
     native_usb *usb;
 

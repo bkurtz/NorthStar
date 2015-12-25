@@ -19,34 +19,29 @@
 
 #include "v800usb.h"
 
-#include <QFile>
-#include <QDateTime>
-#include <QStringList>
-#include <QDir>
-#include <QSettings>
+//#include <QFile>
+//#include <QDateTime>
+//#include <QStringList>
+//#include <QDir>
+//#include <QSettings>
 #include <stdio.h>
 
 #include "native_usb.h"
-#include "trainingsession.h"
+// #include "trainingsession.h"
 
-V800usb::V800usb(int device, QObject *parent) :
-    QObject(parent)
-{
+V800usb::V800usb(int device) {
     usb = NULL;
     this->device = device;
 }
 
-V800usb::~V800usb()
-{
-    if(usb != NULL)
-    {
+V800usb::~V800usb() {
+    if(usb != NULL) {
         usb->close_usb();
         delete usb;
     }
 }
 
-void V800usb::start()
-{
+int V800usb::start() {
     int ret = -1;
     usb = new native_usb();
 
@@ -55,18 +50,10 @@ void V800usb::start()
     else if(device == M400)
         ret = usb->open_usb(0x0da4, 0x0008);
 
-    if(ret != -1)
-    {
-        get_all_sessions();
-        emit ready();
-    }
-    else
-    {
-        emit not_ready();
-    }
+    return (ret != -1);
 }
 
-void V800usb::get_sessions(QList<QString> sessions)
+/* void V800usb::get_sessions(QList<QString> sessions)
 {
     QString session;
     QStringList session_split;
@@ -120,22 +107,22 @@ void V800usb::get_sessions(QList<QString> sessions)
 
     emit sessions_done();
 }
+*/
 
-void V800usb::get_all_objects(QString path)
+/* void V800usb::get_all_objects(QString path)
 {
     QList<QString> objects;
 
     objects = get_v800_data(path);
     emit all_objects(objects);
 }
+*/
 
-void V800usb::get_file(QString path)
-{
-    get_v800_data(path, 0, true);
-    emit file_done();
+void V800usb::get_file(std::string path) {
+    get_v800_data(path, true);
 }
 
-void V800usb::upload_route(QString route)
+/* void V800usb::upload_route(QString route)
 {
     qDebug("Route file: %s", route.toLatin1().constData());
 
@@ -207,8 +194,9 @@ void V800usb::upload_route(QString route)
     put_v800_data(QString(tr("%1/ID.BPB")).arg(route), QString(tr("/U/0/FAV/%1/ID.BPB")).arg(new_route_num, 2, 10, QChar(0x30)));
     put_v800_data(QString(tr("%1/TST.BPB")).arg(route), QString(tr("/U/0/FAV/%1/TST.BPB")).arg(new_route_num, 2, 10, QChar(0x30)));
 }
+*/
 
-void V800usb::get_all_sessions()
+/* void V800usb::get_all_sessions()
 {
     QList<QString> dates, times, files, sessions;
     int dates_iter, times_iter, files_iter;
@@ -253,18 +241,15 @@ void V800usb::get_all_sessions()
 
     emit all_sessions(sessions);
 }
+*/
 
-QList<QString> V800usb::get_v800_data(QString request, int multi_sport, bool debug)
-{
-    QList<QString> data;
+int V800usb::get_v800_data(std::string request, bool debug) {
     QByteArray packet, full;
     int cont = 1, usb_state = 0, packet_num = 0, initial_packet = 1;
 
-    while(cont)
-    {
+    while(cont) {
         // usb state machine for reading
-        switch(usb_state)
-        {
+        switch(usb_state) {
         case 0: // send a command to the watch
             packet.clear();
             packet = generate_request(request);
@@ -279,13 +264,10 @@ QList<QString> V800usb::get_v800_data(QString request, int multi_sport, bool deb
             packet = usb->read_usb();
 
             // check for end of buffer
-            if(is_end(packet))
-            {
+            if(is_end(packet)) {
                 full = add_to_full(packet, full, initial_packet, true);
                 usb_state = 4;
-            }
-            else
-            {
+            } else {
                 full = add_to_full(packet, full, initial_packet, false);
                 usb_state = 2;
             }
@@ -307,60 +289,11 @@ QList<QString> V800usb::get_v800_data(QString request, int multi_sport, bool deb
             usb_state = 1;
             break;
         case 4:
-            if(!debug)
-            {
-                if(!request.contains(tr(".")))
-                {
-                    data = extract_dir_and_files(full);
-                }
-                else if(request.contains(tr("/E/")))
-                {
-                    QStringList session_split = request.split(tr("/"));
-                    QString date, time, file;
-
-                    if(session_split.length() < 7)
-                    {
-                        qDebug("Malformed request!\n");
-
-                        cont = 0;
-                        break;
-                    }
-                    else
-                    {
-                        date = session_split[3];
-                        time = session_split[5];
-                        file = session_split.last();
-                    }
-
-                    QString tag = QDateTime(QDate::fromString(date, tr("yyyyMMdd")), QTime::fromString(time, tr("HHmmss"))).toString(tr("yyyyMMddhhmmss"));
-
-                    QSettings settings;
-                    QString default_dir = settings.value(tr("default_dir")).toString();
-
-                    QString raw_dir = (QString(tr("%1/%2_%3")).arg(default_dir).arg(tag).arg(multi_sport));
-                    QDir(raw_dir).mkpath(raw_dir);
-
-                    QString raw_dest = (QString(tr("%1/%2")).arg(raw_dir).arg(file));
-
-                    qDebug("Path: %s", raw_dest.toUtf8().constData());
-
-                    QFile *raw_file;
-                    raw_file = new QFile(raw_dest);
-                    raw_file->open(QIODevice::WriteOnly);
-                    raw_file->write(full);
-                    raw_file->close();
-
-                    data.append(raw_dest);
-                }
-                else
-                {
-                    qDebug("Unknown file type! -> %s", request.toUtf8().constData());
-                }
-            }
-            else
-            {
-                if(request.contains(tr(".")))
-                {
+            if(!debug) 
+				fprintf(stderr, "only debug mode is currently supported\n");
+            else {
+				full.write(stdout);
+                /*if(request.contains(tr("."))) {
                     request.replace(tr("/"), tr("_"));
 
                     QSettings settings;
@@ -371,7 +304,7 @@ QList<QString> V800usb::get_v800_data(QString request, int multi_sport, bool deb
                     debug_file->open(QIODevice::WriteOnly);
                     debug_file->write(full);
                     debug_file->close();
-                }
+                }*/
             }
 
             cont = 0;
@@ -379,10 +312,10 @@ QList<QString> V800usb::get_v800_data(QString request, int multi_sport, bool deb
         }
     }
 
-    return data;
+    return (cont != 0);
 }
 
-QList<QString> V800usb::extract_dir_and_files(QByteArray full)
+/* QList<QString> V800usb::extract_dir_and_files(QByteArray full)
 {
     QList<QString> dir_and_files;
     int full_state = 0, size = 0, loc = 0;
@@ -391,7 +324,7 @@ QList<QString> V800usb::extract_dir_and_files(QByteArray full)
     {
         switch(full_state)
         {
-        case 0: /* look for 0x0A */
+        case 0: // look for 0x0A
             if(full[loc] == (char)0x0A)
             {
                 loc++;
@@ -400,7 +333,7 @@ QList<QString> V800usb::extract_dir_and_files(QByteArray full)
 
             loc++;
             break;
-        case 1: /* is this the second 0x0A? */
+        case 1: // is this the second 0x0A?
             if(full[loc] == (char)0x0A)
                 full_state = 2;
             else
@@ -408,19 +341,19 @@ QList<QString> V800usb::extract_dir_and_files(QByteArray full)
 
             loc++;
             break;
-        case 2: /* get the size */
+        case 2: // get the size
             size = full[loc];
 
             full_state = 3;
             loc++;
             break;
-        case 3: /* we need a 0x10 after the string */
+        case 3: // we need a 0x10 after the string
             if(full.at(loc+size) == 0x10)
                 full_state = 4;
             else
                 full_state = 0;
             break;
-        case 4: /* now get the full string */
+        case 4: // now get the full string
             QString name(tr(QByteArray(full.constData()+loc, size)));
 
             dir_and_files.append(name);
@@ -433,9 +366,9 @@ QList<QString> V800usb::extract_dir_and_files(QByteArray full)
 
     return dir_and_files;
 }
+*/
 
-QByteArray V800usb::generate_request(QString request)
-{
+QByteArray V800usb::generate_request(std::string request) {
     QByteArray packet;
 
     packet[0] = 01;
@@ -447,13 +380,12 @@ QByteArray V800usb::generate_request(QString request)
     packet[6] = 0x00;
     packet[7] = 0x12;
     packet[8] = request.length();
-    packet.append(request.toUtf8());
+    packet.append((uint8_t*)request.c_str(), request.length());
 
     return packet;
 }
 
-QByteArray V800usb::generate_ack(unsigned char packet_num)
-{
+QByteArray V800usb::generate_ack(unsigned char packet_num) {
     QByteArray packet;
 
     packet[0] = 0x01;
@@ -463,46 +395,38 @@ QByteArray V800usb::generate_ack(unsigned char packet_num)
     return packet;
 }
 
-int V800usb::is_end(QByteArray packet)
-{
-    if((packet[1] & 0x03) == 1)
-        return 0;
-    else
-        return 1;
+int V800usb::is_end(QByteArray packet) {
+    return ((packet[1] & 0x03) == 1);
 }
 
-QByteArray V800usb::add_to_full(QByteArray packet, QByteArray full, bool initial_packet, bool final_packet)
-{
+QByteArray V800usb::add_to_full(QByteArray packet, QByteArray full, bool initial_packet, bool final_packet) {
     QByteArray new_full = full;
     unsigned int size = (unsigned char)packet[1] >> 2;
+	unsigned int start = 3;
+	fprintf(stderr, "packet header is %02x%02x\n", packet[0], packet[1]);
 
-    if(initial_packet)
-    {
-        // final packets have a trailing 0x00 we don't want
-        if(final_packet)
-            size -= 4;
-        else
-            size -= 3;
-
-        packet.remove(0, 5);
-        new_full.append(packet.constData(), size);
+	size--; //drop first byte
+    if(initial_packet) {
+		// initial packets have an extra two leading bytes
+		size -= 2;
+        start += 2;
     }
-    else
-    {
-        // final packets have a trailing 0x00 we don't want
-        if(final_packet)
-            size -= 2;
-        else
-            size -= 1;
+    // final packets have a trailing 0x00 we don't want
+//TODO is this trailing 0x00 because it's a Cstring?
+	if(final_packet)
+		size--;
 
-        packet.remove(0, 3);
-        new_full.append(packet.constData(), size);
-    }
+	packet.remove(0, start);
+	if(size > packet.length()) {
+		fprintf(stderr, "warning, packet is shorter than it should be!\n");
+		size = packet.length();
+	}
+	new_full.append((uint8_t*)packet.constData(), size);
 
     return new_full;
 }
 
-void V800usb::remove_v800_dir(QString dest)
+/* void V800usb::remove_v800_dir(QString dest)
 {
     qDebug("Dir: %s", dest.toLatin1().constData());
 
@@ -533,8 +457,9 @@ void V800usb::remove_v800_dir(QString dest)
         }
     }
 }
+*/
 
-void V800usb::put_v800_dir(QString dest)
+/* void V800usb::put_v800_dir(QString dest)
 {
     qDebug("Dir: %s", dest.toLatin1().constData());
 
@@ -565,8 +490,9 @@ void V800usb::put_v800_dir(QString dest)
         }
     }
 }
+*/
 
-void V800usb::put_v800_data(QString src, QString dest)
+/* void V800usb::put_v800_data(QString src, QString dest)
 {
     qDebug("Src: %s\nDest: %s", src.toLatin1().constData(), dest.toLatin1().constData());
 
@@ -628,8 +554,9 @@ void V800usb::put_v800_data(QString src, QString dest)
         }
     }
 }
+*/
 
-QByteArray V800usb::generate_directory_command(QByteArray dest, bool remove)
+/* QByteArray V800usb::generate_directory_command(QByteArray dest, bool remove)
 {
     QByteArray packet;
 
@@ -649,8 +576,9 @@ QByteArray V800usb::generate_directory_command(QByteArray dest, bool remove)
 
     return packet;
 }
+*/
 
-QByteArray V800usb::generate_initial_command(QByteArray dest, QByteArray data)
+/* QByteArray V800usb::generate_initial_command(QByteArray dest, QByteArray data)
 {
     QByteArray packet;
 
@@ -671,8 +599,9 @@ QByteArray V800usb::generate_initial_command(QByteArray dest, QByteArray data)
 
     return packet;
 }
+*/
 
-QByteArray V800usb::generate_next_command(QByteArray data, int packet_num)
+/* QByteArray V800usb::generate_next_command(QByteArray data, int packet_num)
 {
     QByteArray packet;
 
@@ -686,11 +615,13 @@ QByteArray V800usb::generate_next_command(QByteArray data, int packet_num)
 
     return packet;
 }
+*/
 
-int V800usb::is_command_end(QByteArray packet)
+/* int V800usb::is_command_end(QByteArray packet)
 {
     if(packet.at(1) == 0x10)
         return 1;
     else
         return 0;
 }
+*/

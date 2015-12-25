@@ -4,6 +4,13 @@ QByteArray::QByteArray () {
 	bytes = NULL;
 	n = 0;
 }
+QByteArray::~QByteArray () {
+//no idea why, but this was causing crashes, so it's going away for now
+	/*if(bytes!=NULL) {
+		free(bytes);
+		bytes = NULL;
+	}*/
+}
 
 int QByteArray::length() { return n; }
 void QByteArray::resize(size_t length) {
@@ -38,4 +45,45 @@ void QByteArray::append(uint8_t * data, size_t length) {
 
 void * QByteArray::constData() {
 	return (void *) bytes;
+}
+
+void QByteArray::clear() {
+	bytes = NULL;
+	n = 0;
+}
+
+void QByteArray::remove(size_t start, size_t length) {
+	if(start+length>n) {
+		if(start > n) {
+			return;
+		}
+		length = n-start;
+	}
+	memmove(bytes+start, bytes+start+length, n-start-length);
+	bytes = (uint8_t *)realloc(bytes,n-length);
+	n -= length;
+}
+
+uint8_t& QByteArray::operator[] (const int nIndex) {
+	if(nIndex >= n) resize(nIndex+1);
+	return bytes[nIndex];
+}
+
+int QByteArray::write(FILE * fh) {
+	size_t count;
+	count = fwrite(bytes, sizeof(uint8_t), n, fh);
+	return count==n;
+}
+
+void QByteArray::print_hex(FILE * fh) {
+	size_t i;
+	for(i=0; i<n; i++) {
+		fprintf(fh, "%02x", bytes[i]);
+		if(i%0x10==-1%0x10) {
+			fputc('\n',fh);
+		} else if(i%0x4==-1%0x4) {
+			fputc(' ', fh);
+		}
+	}
+	fprintf(fh,"\n");
 }
