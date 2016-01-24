@@ -1,5 +1,6 @@
 *.o
 *.exe
+*.dSYM
 Makefile
 Makefile.Debug
 Makefile.Release
