@@ -79,9 +79,9 @@ void QByteArray::print_hex(FILE * fh) {
 	size_t i;
 	for(i=0; i<n; i++) {
 		fprintf(fh, "%02x", bytes[i]);
-		if(i%0x10==-1%0x10) {
+		if(i%0x10==0x10-1) {
 			fputc('\n',fh);
-		} else if(i%0x4==-1%0x4) {
+		} else if(i%0x4==0x4-1) {
 			fputc(' ', fh);
 		}
 	}
