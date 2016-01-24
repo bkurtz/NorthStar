@@ -396,7 +396,7 @@ QByteArray V800usb::generate_ack(unsigned char packet_num) {
 }
 
 int V800usb::is_end(QByteArray packet) {
-    return ((packet[1] & 0x03) == 1);
+    return ((packet[1] & 0x03) != 1);
 }
 
 QByteArray V800usb::add_to_full(QByteArray packet, QByteArray full, bool initial_packet, bool final_packet) {
