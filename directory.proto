@@ -1,0 +1,29 @@
+package polar;
+
+message DateTime {
+	message Date {
+		required int32 year = 1;
+		required int32 month = 2;
+		required int32 day = 3;
+	}
+	message Time {
+		required int32 hour = 1;
+		required int32 minute = 2;
+		required int32 second = 3;
+	}
+	required Date date = 1;
+	required Time time = 2;
+	required int32 tz = 3; // I'm assuming time zone, but I really have no idea.  So far always zero
+}
+
+message DirEntry {
+	required string name = 1;
+	required int32 size = 2; // Always zero for directories, otherwise filesize in bytes
+	required DateTime created = 3; // First date field always seems smaller than the second
+	required DateTime modified = 4;
+	required DateTime d3 = 5; // usually seems to be 1980-00-00 00:00:00 +0; there are a few exceptions, but it's unclear why
+}
+
+message Directory {
+	repeated DirEntry item = 1;
+}
