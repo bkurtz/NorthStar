@@ -18,16 +18,8 @@
 */
 
 #include "v800usb.h"
-
-//#include <QFile>
-//#include <QDateTime>
-//#include <QStringList>
-//#include <QDir>
-//#include <QSettings>
-#include <stdio.h>
-
 #include "native_usb.h"
-// #include "trainingsession.h"
+#include <stdio.h>
 
 V800usb::V800usb(int device) {
     usb = NULL;
@@ -403,7 +395,6 @@ QByteArray V800usb::add_to_full(QByteArray packet, QByteArray full, bool initial
     QByteArray new_full = full;
     unsigned int size = (unsigned char)packet[1] >> 2;
 	unsigned int start = 3;
-	fprintf(stderr, "packet header is %02x%02x\n", packet[0], packet[1]);
 
 	size--; //drop first byte
     if(initial_packet) {

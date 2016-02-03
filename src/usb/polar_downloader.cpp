@@ -5,7 +5,6 @@ int main(int argc, char * argv[]) {
 		fprintf(stderr, "Usage:\n\t%s file_to_fetch\n", argv[0]);
 		return -1;
 	}
-	fprintf(stderr, "download file %s\n", argv[1]);
 
 	V800usb watch (M400);
 	if(!watch.start()) {
