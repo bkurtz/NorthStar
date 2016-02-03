@@ -8,7 +8,11 @@ import directory_pb2
 import sys
 
 def date_to_string(d):
-	return "%04i-%02i-%02i %02i:%02i:%02i +%i" % (d.date.year, d.date.month, d.date.day, d.time.hour, d.time.minute, d.time.second, d.tz)
+	if(d.isUTC):
+		tz = 'Z'
+	else:
+		tz = "%+i" % (d.tz_minutes/60)
+	return "%04i-%02i-%02i %02i:%02i:%02i %s" % (d.date.year, d.date.month, d.date.day, d.time.hour, d.time.minute, d.time.second, tz)
 
 if len(sys.argv) > 1:
 	fn = sys.argv[1]
