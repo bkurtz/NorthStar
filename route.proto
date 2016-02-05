@@ -50,3 +50,42 @@ message Route {
 	// Actually, my ROUTE file has field 9, then field 5(which is length delimited, not an integer?), then 2 (length delimited), 3 (length delimited), 4 (length delimited), and 1 (length delimited)
 }
 
+message TrainingLoad {
+	required int32 load = 1;
+	required Time recovery_time = 2;
+	optional int32 carbs = 3;
+	optional int32 protein = 4;
+	optional int32 fat = 5;
+}
+
+message Stat {
+	optional int32 average = 1;
+	optional int32 maximum = 2;
+}
+
+message Activity {
+	message Sport {
+		repeated string name = 1; // unsure if it's actually repeated; haven't seen that yet
+	}
+	enum TrainingBenefit {
+		UNKNOWN = 1;
+		STEADY_STATE_TRAINING = 11;
+		BASIC_TRAINING_LONG = 16;
+		BASIC_TRAINING = 17;
+	}
+	required DateTime start_time = 1;
+	required uint32 exercise_count = 2;
+	optional string device_id = 3;
+	optional string device_model = 4;
+	optional Time duration = 5;
+	optional float distance = 6; //meters
+	optional int32 calories = 7;
+	optional Stat heartrate = 8;
+	repeated Time heartrate_duration = 9; // in order for zones 1,2,3,4,5
+	optional TrainingLoad training_load = 10;
+	optional Sport sport = 11; // bipolar says "session-name" instead of sport?
+	optional double latitude = 15;
+	optional double longitude = 16;
+	optional TrainingBenefit training_benefit = 17; // stolen from bipolar again
+	required DateTime end_time = 20;
+}
