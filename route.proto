@@ -27,7 +27,7 @@ message SamplesF28 {
 }
 
 message Samples {
-	required Time record_interval = 1;
+	optional Time record_interval = 1;
 	repeated int32 heartrate = 2 [packed=true];
 	repeated SensorStatus heartrate_offline = 3;
 	repeated int32 cadence = 4 [packed=true];
