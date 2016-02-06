@@ -3,6 +3,7 @@
 # Usage:
 # ./activity_download
 
+from __future__ import print_function
 import directory_pb2
 import route_pb2
 import sys
@@ -10,7 +11,8 @@ import subprocess
 import re
 import activity_to_tcx
 import argparse
-from os import listdir
+# from os import listdir
+from os import mkdir
 from os.path import isfile, join, isdir
 
 def date_to_string(d):
@@ -45,7 +47,7 @@ def download_activity_info(path):
 	
 	return activity
 
-def recursive_download_and_print(path):
+def recursive_listing(path):
 	directory = download_directory(path)
 	
 	for item in directory.item:
@@ -56,7 +58,19 @@ def recursive_download_and_print(path):
 	
 	for item in directory.item:
 		if item.name.endswith('/'):
-			recursive_download_and_print(path + item.name)
+			recursive_listing(path + item.name)
+
+def recursive_download(watch_path, out_root, skip=[]):
+	dirlist = download_directory(watch_path)
+	for item in dirlist.item:
+		if item.name.endswith('/'):
+			if not isdir(out_root): mkdir(out_root)
+			recursive_download(watch_path + item.name, join(out_root, item.name[:-1]), skip)
+		elif item.name not in skip:
+			msg("Fetching %s..." % (watch_path+item.name))
+			data = subprocess.check_output([polar_downloader, watch_path+item.name])
+			with open(join(out_root, item.name), 'w') as rfile:
+				rfile.write(data)
 
 def get_activity_directories():
 	user_path = '/U/0/'
@@ -90,7 +104,7 @@ def get_activity_directories():
 	
 	return activities
 
-def print_activity_list(activities):
+def print_activity_list(activities, quiet=False):
 	i = 1
 	for a in activities:
 		a_name = a["info"].sport.name[0]
@@ -98,9 +112,11 @@ def print_activity_list(activities):
 		a_dist = a["info"].distance/1000;
 		if a["stats_only"]:
 			line_symbol = '*'
+			if quiet: continue
 		else:
 			line_symbol = "%i" % (i)
 			i += 1
+		# NOTE: this one goes to stdout, not stderr
 		print("%s\t%s\t%s, %.1f km" % (line_symbol, date_to_string(a_time), a_name, a_dist))
 
 def get_activity_date(activity):
@@ -110,17 +126,34 @@ def fn_for_activity(activity):
 	d = get_activity_date(activity)
 	return d.strftime('%Y-%m-%d_%H-%M-%S.tcx')
 
-def download_activity_data(activity, quiet=False):
+def msg(m, quiet=False, setquiet=None):
+	if setquiet is not None and quiet != setquiet:
+		quiet = setquiet
+	if not quiet:
+		print(m, file=sys.stderr)
+
+def download_activity_data(activity, quiet=False, save_raw=False):
 	# generate paths to downlaod from
 	s_path = activity['path'] + '00/SAMPLES.GZB'
 	r_path = activity['path'] + '00/ROUTE.GZB'
 	# download them from the watch
-	if not quiet:
-		print "Downloading Route File..."
+	msg("Downloading Route File...")
 	rdata = subprocess.check_output([polar_downloader, r_path]);
-	if not quiet:
-		print "Downloading Samples File..."
+	msg("Downloading Samples File...")
 	sdata = subprocess.check_output([polar_downloader, s_path]);
+	# save raw output if requested
+	# do this before parsing so as to have data to work with in the event that parsing fails
+	if save_raw:
+		msg("Saving raw activity data...")
+		tmpdir = "/tmp/NorthStar"
+		actdir = join(tmpdir, '00')
+		if not isdir(tmpdir): mkdir(tmpdir)
+		if not isdir(actdir): mkdir(actdir)
+		with open(join(actdir,'SAMPLES.GZB'), 'w') as rfile:
+			rfile.write(sdata)
+		with open(join(actdir,'ROUTE.GZB'), 'w') as rfile:
+			rfile.write(rdata)
+		recursive_download(activity['path'], tmpdir, skip=['SAMPLES.GZB', 'ROUTE.GZB'])
 	# parse protocol buffers
 	route = activity_to_tcx.parse_route(rdata)
 	samp = activity_to_tcx.parse_samples(sdata)
@@ -133,24 +166,25 @@ parser.add_argument("-m", "--missing", action="store_true", help="Download all a
 parser.add_argument("-i", "--interactive", action="store_true", help="Download interactively (default if none of -l, -n, -m specified)");
 parser.add_argument("-o", "--output", help="Output directory. Defaults to current directory if unspecified.  Files are named as yyyy-mm-dd_HH-MM-SS.tcx")
 parser.add_argument("-q", "--quiet", action="store_true")
+parser.add_argument("-r", "--raw", action="store_true", help="Save raw files for each activity in /tmp/NorthStar/ for debugging.  Only latest files are saved.")
 parser.add_argument("outfile", help="File to write for downloading a single activity with -n.  Default is stdout unless -o is specified.", type=argparse.FileType('w'), nargs='?', default=sys.stdout)
 args = parser.parse_args()
-
-# download and sort the activity list
-if not args.quiet:
-	print("Fetching activity list")
-activity_list = get_activity_directories()
-activity_list.sort(key=get_activity_date)
 
 # do some extra arg checking
 outdir = './'
 if args.output:
 	outdir = args.output
 	if not isdir(args.output):
-		print "output directory does not exist"
+		sys.exit("output directory does not exist")
 be_interactive = (not (args.download_number or args.missing or args.list)) or args.interactive
+
+# download and sort the activity list
+msg("Fetching activity list", setquiet=args.quiet)
+activity_list = get_activity_directories()
+activity_list.sort(key=get_activity_date)
+
 if be_interactive or args.list:
-	print_activity_list(activity_list)
+	print_activity_list(activity_list, quiet=args.quiet)
 
 # filter activity list to remove activities without GPS data
 activity_list = [ a for a in activity_list if not a["stats_only"] ]
@@ -163,7 +197,7 @@ if args.download_number:
 	else:
 		N = args.download_number
 	# download the files and convert to tcx
-	(route, samples) = download_activity_data(activity_list[N], quiet=args.quiet)
+	(route, samples) = download_activity_data(activity_list[N], quiet=args.quiet, save_raw=args.raw)
 	xml_str = activity_to_tcx.track_to_xml(activity_list[N]["info"], route, samples)
 	# write to file
 	if args.outfile:
@@ -179,18 +213,15 @@ if args.missing:
 		# go ahead and check compressed filenames too...
 		if not (isfile(fn) or isfile(fn+'.gz') or isfile(fn+'.xz') or isfile(fn+'.bz2')):
 			missing_activities.append(a)
-	if not args.quiet:
-		print("%i Activities to download\n" % (len(missing_activities)))
+	msg("%i Activities to download\n" % (len(missing_activities)))
 	for a in missing_activities:
 		fn = join(outdir, fn_for_activity(a))
 		(route, samples) = download_activity_data(a, quiet=args.quiet)
-		if not args.quiet:
-			print("Saving to file %s..." % (fn))
+		msg("Saving to file %s..." % (fn))
 		xml_str = activity_to_tcx.track_to_xml(a['info'], route, samples)
 		with open(fn, 'w') as tcxfile:
 			tcxfile.write(xml_str)
-	if not args.quiet:
-		print("Done!")
+	msg("Done!")
 
 if not be_interactive:
 	sys.exit(0)
@@ -201,7 +232,7 @@ while True:
 	try:
 		N = int(N)
 	except ValueError:
-		print "bye"
+		print("bye")
 		sys.exit(0)
 	# get data
 	(route, samples) = download_activity_data(activity_list[N-1])
