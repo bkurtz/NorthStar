@@ -67,9 +67,9 @@ def track_to_xml(activity, route, samples):
 		xml += '<AltitudeMeters>%.3f</AltitudeMeters>\n' % route.altitude[i]
 		# this would be distance, but I don't actually like distance either; strava will recalculate it
 		# xml += '<DistanceMeters>%.4f</DistanceMeters>\n' % samples.distance[i]
-		if samples.heartrate[i] != -99999:
+		if samples.heartrate and samples.heartrate[i] != -99999:
 			xml += '<HeartRateBpm><Value>%i</Value></HeartRateBpm>\n' % samples.heartrate[i]
-		if samples.cadence[i] != -99999:
+		if samples.cadence and samples.cadence[i] != -99999:
 			xml += '<Cadence>%i</Cadence>\n' % samples.cadence[i]
 		xml += '</Trackpoint>\n'
 	xml += '</Track></Lap>\n' # TODO: improve lap support
