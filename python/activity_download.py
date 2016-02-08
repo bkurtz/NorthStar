@@ -170,7 +170,7 @@ parser.add_argument("-i", "--interactive", action="store_true", help="Download i
 parser.add_argument("-o", "--output", help="Output directory. Defaults to current directory if unspecified.  Files are named as yyyy-mm-dd_HH-MM-SS.tcx")
 parser.add_argument("-q", "--quiet", action="store_true")
 parser.add_argument("-r", "--raw", action="store_true", help="Save raw files for each activity in /tmp/NorthStar/ for debugging.  Only latest files are saved.")
-parser.add_argument("outfile", help="File to write for downloading a single activity with -n.  Default is stdout unless -o is specified.", type=argparse.FileType('w'), nargs='?', default=sys.stdout)
+parser.add_argument("outfile", help="File to write for downloading a single activity with -n.  Default is stdout unless -o is specified.", type=argparse.FileType('w'), nargs='?')
 args = parser.parse_args()
 
 # do some extra arg checking
@@ -203,7 +203,9 @@ if args.download_number:
 	(route, samples) = download_activity_data(activity_list[N], quiet=args.quiet, save_raw=args.raw)
 	xml_str = activity_to_tcx.track_to_xml(activity_list[N]["info"], route, samples)
 	# write to file
-	if args.outfile:
+	if args.outfile or not args.output:
+		if not args.outfile:
+			args.outfile = sys.stdout;
 		args.outfile.write(xml_str)
 	else:
 		with open(outdir + '/' + fn_for_activity(activity_list[N]), 'w') as tcxfile:
