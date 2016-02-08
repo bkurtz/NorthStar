@@ -1,41 +1,34 @@
-v800_downloader
+NorthStar
 ===============
 
-Update: Release 5 fixes a bug where some garbage data would result in thinking files and directories existed where they did not and had obviously faulty names. This has been fixed. I only saw this after I did a factory reset, so it might not occur in normal usage but it shouldn't be an issue now.
+NorthStar is a tool that can be used to download sessions and other data from various smart watches by Polar (e.g. M400, probably V800).  Activity sessions are converted to TCX files which can then be used locally or uploaded to a website of your choice (e.g. Strava).
 
-Update: Release 4 now properly supports multisport sessions. Exported files will have a _(NUMBER) appended to them before the extension. This number is the order of the sport in the multisport session. Single sport sessions now have a _0 appended before the extension to represent that this is sport 1 of the session.
+NorthStar was developed leaning heavily on code from <a href="https://www.github.com/profanum429/v800_downloader">V800 Downloader</a> and <a href="https://www.github.com/pcolby/bipolar">Bipolar</a>.  Specifically, the USB communication code is taken almost verbatim from V800 Downloader, and the protobuf templates from Bipolar were exceedingly useful in parsing the resulting data files.  Unlike these original programs, NorthStar is designed to run from the command line, and does not depend on Qt.
 
-Update: Release 3 still works with the new 1.0.12 firmware but right after the update you won't see any sessions since when the firmware updates all the sessions on the watch have their full set of data removed and leave only the statistics information behind. Any new activities will be downloadable :)
+## Dependencies
+* python (2.7?)
+* <a href="https://developers.google.com/protocol-buffers/">Protocol Buffers</a>
+* a C++ compiler
 
-V800 Downloader is a tool that is used to download sessions from the Polar V800 watch. In normal usage there is no first party way
-to export data from the V800, but with V800 Downloader + Bipolar (https://www.github.com/pcolby/bipolar) data can be exported from
-the V800 without using any Polar software.
+## Installation
+After installing Protocol Buffers (Mac OS X users may find it convenient to install the `protobuf` package in [Homebrew](http://brew.sh)), you should be able to run `make` at the top level of the source repository.  This will build the python files for parsing data from the watch, as well as compiling the C++ code that takes care of the USB communications.  Once that's done, you can run `./northstar.py --help` to get started.  I haven't made any attempts to set this up to be installed anywhere, so it's likely easiest to just add the source directory to your path, or make a shell alias or type the whole path.
 
-If you use Polar FlowSync to sync with the watch already I'd suggest using <a href="https://www.github.com/pcolby/bipolar">Bipolar</a>
-by itself as it will install a hook that will collect session data as you use FlowSync. It will be a lot simpler and not as complicated
-as using V800 Downloader.
+## Options
+Options are probaby best documented with the online help: `./northstar.py --help`.  I built in all the options I thought I needed plus a few that I suspect I won't use very much, but it's still extremely basic.  I think my favorite mode will end up being `./northstar.py -m -o ~/polar_data/`, which keeps updates the existing set of files in `~/polar_data/` with any new activities that are present on the watch.  You can even compress the output TCX files with your favorite compression program  and it won't re-download a new copy, assuming the filename only changed by the addition of a `.gz`, `.bz2`, or `.xz`.
 
-If, however, you sync with your phone, such as with the iPhone Polar Flow app, then this tool is for you. It's
-a combination of a front end that lets you select which sessions to export and formats and two backends that handle the work. The first
-backend is the USB backend that handles all communication to the V800 itself and is responsible for getting session data. The second
-backend is from <a href="https://www.github.com/pcolby/bipolar">Bipolar</a> and is responsible for doing the actual hardwork; the converting
-the session data into good formats like TCX, GPX and HRM.
+If you want to do fancier things or play with the raw data, there are several additional protobuf message formats in the `protobuf/` directory of the source, which you can parse with `protoc` (part of the protocol buffers distribution; see it's documentation for more info on how to use it), or you can use `protoc --decode_raw` to parse raw messages from the watch.  You can always run the compiled USB download program directly (`src/polar_downloader`) to download data from the watch manually, and there are some bonus routines/scripts in the `python/` source directory that can be used for useful things like recursive directory listings or recursive file downloads from the watch.
 
-Steps to use:<br>
-1) Connect your V800 to the computer with the USB cable<br>
-2) Run V800 Downloader; it should display a message saying that it is retrieving session data<br>
-3) Select which sessions you desire to download from the list. You can grab as many or little as you like. <br>
-4) Check what output formats you'd like to get<br>
-5) Click Download Sessions. Progress will be displayed and when finished a message telling you where the files are located will be displayed. <br>
-   Additionally any error messages will appear here also.<br>
-6) Upload your files :)<br>
+## Caveats
+* In theory, this should work on any platform, however, in practice I work on a Mac and have not yet made the effort to build and test on Linux/Unix.  I think it's mostly a matter of figuring out how to make the C++ makefile pass the right OS flag to the compiler, and then making sure the result actually builds and runs.  I might eventually get around to this, but it's not much of a priority.
+* Currently only supports TCX output.  I mostly use the data for upload to Strava, so one format was enough, and I decided to go for TCX because it appears to support inclusion of lap data most easily (though NorthStar doesn't currently implement that).
+* Currently quite limited in the range of data it parses.  I don't have any fancy power sensors or anything, so I'm mostly looking at running cadence, sometimes heartrate, and GPS coordinates.
+	* I actually even leave the distance out of the TCX file for now, because it seems that Strava is happy to re-calculate distance from GPS points, and the week I was uploading this I _happened_ to have an issue with Polar's web interface exporting really buggy distance measurements.  So far, the data from the watch is usually fine, but since I don't really need it, I decided to leave it out.
+	* I don't support multi-sport sessions.  I don't generally _do_ multisport sessions, and I don't even know how to make one on my M400, so it's way too early to think about making the code support those.  If you want support for that and have example data you'd be willing to share, hit me up.
 
-Credits:
-I couldn't of done this program without the <a href="https://www.github.com/pcolby/bipolar">Bipolar</a> project as it does the hard work of
-converting the data into actual files. All of my modifications are available at https://www.github.com/profanum429/v800_downloader, under the
-src/bipolar directory.<br>
-LibUSB from libusb.info. Version 1.0.19 is incorporated into V800 Downloader. I've made no source modifications. <br>
-rawhid from https://www.pjrc.com/teensy/rawhid.html. I use the V1.0 of the OS X version for USB communication in OS X.<br>
+## Credits
+* [V800 Downloader](https://www.github.com/profanum429/v800_downloader) for raw USB source code, which is modified somewhat and can be found in the `src/` directory.
+* [Bipolar](https://www.github.com/pcolby/bipolar) For all the hints on protobuf message formats
+* [rawhid](https://www.pjrc.com/teensy/rawhid.html) V1.0 for OS X is used for USB communication in OS X, as in V800 Downloader
 
-License:
-All V800 Downloader files are licensed GPL3. The Bipolar files under src/bipolar are licensed GPL3 per the original source.
+## License
+I guess everything is licensed GPL3.  That's what V800 Downloader and Bipolar use, and I'm not inclined to be picky.  Basically, if you make useful changes, I'd really appreciate it if you kick them back to me.
