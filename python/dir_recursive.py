@@ -7,6 +7,7 @@
 import directory_pb2
 import sys
 import subprocess
+from os.path import isfile, join, isdir, dirname, abspath
 
 def date_to_string(d):
 	if(d.isUTC):
@@ -21,7 +22,7 @@ else:
 	sys.exit(1)
 
 # determine the location of the polar_downloader binary
-polar_downloader = "/Users/ben/Downloads/polar/v800_downloader/src/usb/polar_downloader"
+polar_downloader = join(dirname(dirname(abspath(__file__))), 'src', 'polar_downloader')
 
 def recursive_download_and_print(path):
 	data = subprocess.check_output([polar_downloader, path]);

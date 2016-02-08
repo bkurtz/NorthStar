@@ -13,7 +13,7 @@ import activity_to_tcx
 import argparse
 # from os import listdir
 from os import mkdir
-from os.path import isfile, join, isdir
+from os.path import isfile, join, isdir, dirname, abspath
 
 def date_to_string(d):
 	if(d.isUTC):
@@ -23,7 +23,7 @@ def date_to_string(d):
 	return "%04i-%02i-%02i %02i:%02i:%02i %s" % (d.date.year, d.date.month, d.date.day, d.time.hour, d.time.minute, d.time.second, tz)
 
 # determine the location of the polar_downloader binary
-polar_downloader = "/Users/ben/Downloads/polar/v800_downloader/src/usb/polar_downloader"
+polar_downloader = join(dirname(dirname(abspath(__file__))), 'src', 'polar_downloader')
 
 def download_directory(path):
 	if not path.endswith('/'):
