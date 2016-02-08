@@ -23,7 +23,10 @@ def date_to_string(d):
 	return "%04i-%02i-%02i %02i:%02i:%02i %s" % (d.date.year, d.date.month, d.date.day, d.time.hour, d.time.minute, d.time.second, tz)
 
 # determine the location of the polar_downloader binary
-polar_downloader = join(dirname(dirname(abspath(__file__))), 'src', 'polar_downloader')
+polar_downloader = dirname(abspath(__file__))
+if polar_downloader.endswith("python"):
+	polar_downloader = dirname(polar_downloader)
+polar_downloader = join(polar_downloader, 'src', 'polar_downloader')
 
 def download_directory(path):
 	if not path.endswith('/'):
