@@ -126,11 +126,14 @@ def fn_for_activity(activity):
 	d = get_activity_date(activity)
 	return d.strftime('%Y-%m-%d_%H-%M-%S.tcx')
 
-def msg(m, quiet=False, setquiet=None):
-	if setquiet is not None and quiet != setquiet:
-		quiet = setquiet
-	if not quiet:
+# msg is used to print messages that are omitted when -q is passed
+# calling it once with quiet=False changes the behavior for all subsequent calls
+def msg(m, quiet=None):
+	if quiet is not None:
+		msg.quiet = quiet
+	if not msg.quiet:
 		print(m, file=sys.stderr)
+msg.quiet = False
 
 def download_activity_data(activity, quiet=False, save_raw=False):
 	# generate paths to downlaod from
@@ -179,7 +182,7 @@ if args.output:
 be_interactive = (not (args.download_number or args.missing or args.list)) or args.interactive
 
 # download and sort the activity list
-msg("Fetching activity list", setquiet=args.quiet)
+msg("Fetching activity list", args.quiet)
 activity_list = get_activity_directories()
 activity_list.sort(key=get_activity_date)
 
