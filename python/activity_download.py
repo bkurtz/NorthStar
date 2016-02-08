@@ -224,7 +224,7 @@ if args.missing:
 	msg("%i Activities to download\n" % (len(missing_activities)))
 	for a in missing_activities:
 		fn = join(outdir, fn_for_activity(a))
-		(route, samples) = download_activity_data(a, quiet=args.quiet)
+		(route, samples) = download_activity_data(a, quiet=args.quiet, save_raw=args.raw)
 		msg("Saving to file %s..." % (fn))
 		xml_str = activity_to_tcx.track_to_xml(a['info'], route, samples)
 		with open(fn, 'w') as tcxfile:
@@ -243,7 +243,7 @@ while True:
 		print("bye")
 		sys.exit(0)
 	# get data
-	(route, samples) = download_activity_data(activity_list[N-1])
+	(route, samples) = download_activity_data(activity_list[N-1], save_raw=args.raw)
 	xml_str = activity_to_tcx.track_to_xml(activity_list[N-1]["info"], route, samples)
 	# write file
 	fn = fn_for_activity(activity_list[N-1])
