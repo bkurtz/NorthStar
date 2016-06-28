@@ -26,6 +26,11 @@ message SamplesF28 {
 	repeated int32 f1 = 1 [packed=true];
 }
 
+message SensorOfflineDuration {
+	required Time start_time = 1;
+	required Time duration = 2;
+}
+
 message Samples {
 	optional Time record_interval = 1;
 	repeated int32 heartrate = 2 [packed=true];
@@ -38,6 +43,7 @@ message Samples {
 	repeated SensorCalibration stride_calibration = 15;
 	repeated SensorStatus altitude_offline = 18;
 	repeated SamplesF28 samplesf28 = 28;
+	repeated SensorOfflineDuration pause = 30;
 }
 
 message Route {
