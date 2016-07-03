@@ -9,6 +9,9 @@ import zlib
 import gzip
 import datetime
 
+def timeToMillis(t):
+	return (t.hour * 3600 + t.minute * 60 + t.second)*1000 + t.millisecond
+
 def parse_route(routedata):
 	route = route_pb2.Route()
 	route.ParseFromString(zlib.decompress(routedata, 16+zlib.MAX_WBITS))
@@ -54,8 +57,20 @@ def track_to_xml(activity, route, samples):
 	start = pb_date_to_Date(route.timestamp)
 	xml = [ tcx_header() + tcx_activity_header(activity) ];
 	xml.append('<Lap><Track>\n') # TODO: improve lap support
+	pause_offset = 0;
+	pause_next = float('inf');
+	if samples.pause:
+		pause_next = timeToMillis(samples.pause[0].start_time)
+		pause_index = 0
 	for i, duration in enumerate(route.duration):
-		time = start + datetime.timedelta(milliseconds = duration)
+		if(duration > pause_next):
+			pause_offset += timeToMillis(samples.pause[pause_index].duration)
+			pause_index += 1
+			if pause_index < len(samples.pause):
+				pause_next = timeToMillis(samples.pause[pause_index].start_time);
+			else:
+				pause_next = float('inf');
+		time = start + datetime.timedelta(milliseconds = duration + pause_offset)
 		if time.microsecond == 0:
 			ms_str = '';
 		else:
