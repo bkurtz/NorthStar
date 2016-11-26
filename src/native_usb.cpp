@@ -20,6 +20,7 @@
 #include "native_usb.h"
 #include "QByteArray.h"
 #include <unistd.h>
+#define qDebug //
 
 #if defined(Q_OS_MAC)
 extern "C"

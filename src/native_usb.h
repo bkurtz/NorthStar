@@ -20,8 +20,6 @@
 #ifndef NATIVE_USB_H
 #define NATIVE_USB_H
 
-#define Q_OS_MAC
-
 #include "QByteArray.h"
 #if defined(Q_OS_LINUX) || defined(Q_OS_WIN)
     #include "libusb.h"
