@@ -34,6 +34,10 @@ def parse_samples(sampledata):
 
 def pb_date_to_Date(pbdate):
 	tz = None # seems like ignoring the timezone and doing "everything is UTC" works okay for now?  apparently python is stupid and needs a third-party library or custom classes to do timezones properly?  WTF.
+	# if we have no data, return 'None' instead of hitting an error
+	if pbdate.date.year == 0:
+		return None
+	# otherwise create a datetime
 	t = datetime.datetime(pbdate.date.year, pbdate.date.month, pbdate.date.day, pbdate.time.hour, pbdate.time.minute, pbdate.time.second, pbdate.time.millisecond*1000, tz)
 	if (not pbdate.isUTC) and (pbdate.tz_minutes != 0):
 		t += datetime.timedelta(minutes = -pbdate.tz_minutes)
@@ -55,6 +59,10 @@ def tcx_activity_footer(tsess):
 
 def track_to_xml(activity, route, samples):
 	start = pb_date_to_Date(route.timestamp)
+	if start is None:
+		start = pb_date_to_Date(activity.start_time)
+		if start is None:
+			raise ValueError('shitshitshit')
 	xml = [ tcx_header() + tcx_activity_header(activity) ];
 	xml.append('<Lap><Track>\n') # TODO: improve lap support
 	pause_offset = 0;
